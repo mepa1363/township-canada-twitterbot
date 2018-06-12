@@ -1,11 +1,12 @@
+require('dotenv').config()
 var Twit = require('twit')
 var axios = require('axios')
 
 var T = new Twit({
-    consumer_key: '4ZuGwKlVEktaHGNP3dXF3gMeX',
-    consumer_secret: 'SQGsU9AtBNctsbWmIznUWa6HTGx77qtrn8jmkJH57LwU2l1h8e',
-    access_token: '931631276297031680-mt8tGxhs5or9oDOSaK3ZThxhByJI0Nd',
-    access_token_secret: 'Nwhap5zNgdbMPxiUI6xfoVANqa5MpOkfleUMQOiqgnelP'
+    consumer_key: process.env.CONSUMER_KEY,
+    consumer_secret: process.env.CONSUMER_SECRET,
+    access_token: process.env.ACCESS_TOKEN,
+    access_token_secret: process.env.ACCESS_TOKEN_SECRET
 })
 
 var stream = T.stream('statuses/filter', {
