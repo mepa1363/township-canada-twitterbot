@@ -51,7 +51,10 @@ stream.on('tweet', function(tweet) {
                 if (response.data.length > 0) {
                     var legal_location = response.data[0].legal_location
                     var address = response.data[0].address
-                    reply = ` 📍 ${legal_location} \n🏠 ${address}`
+                    reply = ` 📍 ${legal_location} \n`
+                    if (address !== null) {
+                        reply += `🏠 ${address}`
+                    }
                 }
 
                 T.post('statuses/update', {
