@@ -13,47 +13,59 @@ var stream = T.stream('statuses/filter', {
 })
 
 stream.on('tweet', function(tweet) {
-    // regex: https://regex101.com/
-    // regex for twp-rge-mer -> ^[1-9]{1}[0-9]{0,2}-[1-9]{1}[0-9]{0,1}-(w|W)[4-5]$
+    var coordinatesRegex = /[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?),\s*[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)/g
+    var legalLocationDlsRegex = /((nw|ne|sw|se)|([1-9]|[1][0-6]))[-]([1-9]|[1-2][0-9]|[1-3][0-6])[-]([1-9]|[1-9][0-9]|[1][0-2][0-7])[-]([1-9]|[0-2][0-9]|[3][0])[-]((W|w)[1-6])/ig
+    var legalLocationNtsRegex = /[abcd][-]([1-9]|[1-9][0-9]|(100))[-][abcdrfghijkl][/]([8][2-9]|[9][0-9]|[1][0][0-9]|[1][1][0-4])[-][abcdefghijklmnop][-]([1-9]|[1][0-6])/ig
 
-    var dls = tweet.text.replace('@', '').replace('#', '').replace('townshipcanada', '').replace(/\s/g, '').toUpperCase()
-
-    var wfsParams = {
-        service: 'WFS',
-        version: '2.0.0',
-        request: 'GetFeature',
-        typeName: '	townshipcanada:bot_lookup',
-        outputFormat: 'application/json',
-        srsname: 'EPSG:4326',
-        viewparams: 'query:' + dls
-    }
-
-    axios.get('https://townshipcanada.com/geoserver/ows', {
-            params: wfsParams
-        })
-        .then(function(response) {
-            var reply = " Sorry, that didn't work. Please try again.\nTip: use this template @townshipcanada 2-16-23-W4"
-            var url = ""
-            if (response.data !== undefined && response.data.features.length > 0) {
-                var coordinates = response.data.features[0].geometry.coordinates
-                var longitude = coordinates[1]
-                var latitude = coordinates[0]
-                reply = ' 📍 ' + longitude + ', ' + latitude
-                url = 'https://townshipcanada.com/#10/' + longitude + '/' + latitude
-            }
-
-            T.post('statuses/update', {
-                status: '@' + tweet.user.screen_name + reply + ' ' + url,
-                in_reply_to_status_id: tweet.id_str
-            }, function(err, data, response) {
-                if (err) {
-                    // console.log(err);
-                } else {
-                    // console.log('worked!')
+    var dls = tweet.text.match(legalLocationDlsRegex) || tweet.text.match(legalLocationNtsRegex)
+    var coordinates = tweet.text.match(coordinatesRegex)
+    if (dls !== null && dls.length > 0) {
+        axios.get(`https://beta.townshipcanada.com/api/bot/search/legal_location?q=${dls}`)
+            .then(function(response) {
+                var reply = ` Sorry, that didn't work. Please try again.`
+                if (response.data.length > 0) {
+                    var coordinates = response.data[0].centroid.coordinates
+                    reply = ` 📍 ${coordinates[0]}, ${coordinates[1]}`
                 }
+
+                T.post('statuses/update', {
+                    status: '@' + tweet.user.screen_name + reply,
+                    in_reply_to_status_id: tweet.id_str
+                }, function(err, data, response) {
+                    if (err) {
+                        // console.log(err);
+                    } else {
+                        // console.log('worked!')
+                    }
+                })
             })
-        })
-        .catch(function(error) {
-            // console.log(error)
-        })
+            .catch(function(error) {
+                // console.log(error)
+            })
+    } else if (coordinates !== null && coordinates.length > 0) {
+        coords = coordinates[0].split(',')
+        axios.get(`https://beta.townshipcanada.com/api/bot/search/coordinates?q=${coords[0]},${coords[1]}`)
+            .then(function(response) {
+                var reply = ` Sorry, that didn't work. Please try again.`
+                if (response.data.length > 0) {
+                    var legal_location = response.data[0].legal_location
+                    var address = response.data[0].address
+                    reply = ` 📍 ${legal_location} \n🏠 ${address}`
+                }
+
+                T.post('statuses/update', {
+                    status: '@' + tweet.user.screen_name + reply,
+                    in_reply_to_status_id: tweet.id_str
+                }, function(err, data, response) {
+                    if (err) {
+                        // console.log(err);
+                    } else {
+                        // console.log('worked!')
+                    }
+                })
+            })
+            .catch(function(error) {
+                // console.log(error)
+            })
+    }
 })

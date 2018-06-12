@@ -9,7 +9,7 @@
   "author": "Ebrahim Poorazizi",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.17.1",
-    "twit": "^2.2.9"
+    "axios": "^0.18.0",
+    "twit": "^2.2.10"
   }
 }
